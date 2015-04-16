@@ -17,7 +17,7 @@
 #define HAVE_INTTYPES_H 1
 
 /* Define to 1 if you have the `bluetooth' library (-lbluetooth). */
-/* #undef HAVE_LIBBLUETOOTH */
+#define HAVE_LIBBLUETOOTH 1
 
 /* Define to 1 if you have the `GL' library (-lGL). */
 #define HAVE_LIBGL 1
@@ -35,7 +35,7 @@
 #define HAVE_LIBM 1
 
 /* Define to 1 if you have the `SDL' library (-lSDL). */
-/* #undef HAVE_LIBSDL */
+#define HAVE_LIBSDL 1
 
 /* Define to 1 if you have the <limits.h> header file. */
 #define HAVE_LIMITS_H 1

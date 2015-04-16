@@ -123,11 +123,17 @@ void id_bot(struct RoboAI *ai, struct blob *blobs);
 struct blob *id_coloured_blob(struct RoboAI *ai, struct blob *blobs, int col);
 void track_agents(struct RoboAI *ai, struct blob *blobs);
 void clear_motion_flags(struct RoboAI *ai);
+double angle_between(struct RoboAI *ai);
+double angle_in(struct RoboAI *ai);
+int perfect_kick(struct RoboAI *ai);
+void final_check(int count, double left_right);
+void turn_bot(int left_right, double angle);
+void pivot_bot(int left_right, double angle);
 
 /****************************************************************************
  TO DO:
    Add headers for your own functions implementing the bot's soccer
    playing functionality below.
 *****************************************************************************/
-
+   
 #endif

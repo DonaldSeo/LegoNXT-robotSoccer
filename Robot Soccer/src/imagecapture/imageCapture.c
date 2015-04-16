@@ -122,14 +122,14 @@ void kbHandler(unsigned char key, int x, int y)
   mcx=340;
   mcy=340;
  }
- if (key=='d'&&toggleProc==2) if (mcx<sx-1) mcx++;
+ if (key=='d'&&toggleProc==2) if (mcx<sx-1) mcx+=2;
  if (key=='a'&&toggleProc==2) if (mcx>1) mcx--;
  if (key=='w'&&toggleProc==2) if (mcy>1) mcy--;
- if (key=='s'&&toggleProc==2) if (mcy<sy-1) mcy++;
- if (key=='D'&&toggleProc==2) if (mcx<sx-6) mcx+=5;
- if (key=='A'&&toggleProc==2) if (mcx>5) mcx-=5;
- if (key=='W'&&toggleProc==2) if (mcy>5) mcy-=5;
- if (key=='S'&&toggleProc==2) if (mcy<sy-6) mcy+=5;
+ if (key=='s'&&toggleProc==2) if (mcy<sy-1) mcy+=2;
+ if (key=='D'&&toggleProc==2) if (mcx<sx-6) mcx+=30;
+ if (key=='A'&&toggleProc==2) if (mcx>5) mcx-=30;
+ if (key=='W'&&toggleProc==2) if (mcy>5) mcy-=30;
+ if (key=='S'&&toggleProc==2) if (mcy<sy-6) mcy+=30;
  if (key==' '&&toggleProc==2) 
  {
   fprintf(stderr,"Recorded corner %d at %f,%f\n",cornerIdx,mcx,mcy);
@@ -138,6 +138,7 @@ void kbHandler(unsigned char key, int x, int y)
   cornerIdx++;
   if (cornerIdx==4) toggleProc=0;	// Done!
  }
+
 
  // Image processing controls
  if (key=='<') {bgThresh-=5;fprintf(stderr,"BG subtract threshold now at %f\n",bgThresh);}

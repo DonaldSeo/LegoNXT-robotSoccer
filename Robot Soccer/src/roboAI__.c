@@ -35,7 +35,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-
+#define rad_to_degree 57.2957795
 // global variable
 int c = 0;
 double h = 0.0;
@@ -49,7 +49,6 @@ double perfect_line_x = 0.0;
 double perfect_line_y = 0.0;
 double before_turn_x = 0.0;
 double before_turn_y = 0.0;
-
 
 int count = 0;
 
@@ -220,10 +219,9 @@ void id_bot(struct RoboAI *ai, struct blob *blobs)
  static double stepID=0;
  double frame_inc=1.0/5.0;
 
-    // Need a few frames to establish heading
+ drive_speed(30);   // Need a few frames to establish heading
 
  track_agents(ai,blobs);
-
 
  if (ai->st.selfID==1&&ai->st.self!=NULL)
   fprintf(stderr,"Successfully identified self blob at (%f,%f)\n",ai->st.self->cx[0],ai->st.self->cy[0]);
@@ -232,22 +230,14 @@ void id_bot(struct RoboAI *ai, struct blob *blobs)
  if (ai->st.ballID==1&&ai->st.ball!=NULL)
   fprintf(stderr,"Successfully identified ball blob at (%f,%f)\n",ai->st.ball->cx[0],ai->st.ball->cy[0]);
 
- 
- if ((ai->st.ball == NULL) || (ai->st.self == NULL)){
-    all_stop();
- }else{
-          drive_speed(30);
-           stepID+=frame_inc;
-           if (stepID>=1&&ai->st.selfID==1)
-           {
-            ai->st.state+=1;
-            stepID=0;
-            all_stop();
-           }
-           else if (stepID>=1) stepID=0;
+ stepID+=frame_inc;
+ if (stepID>=1&&ai->st.selfID==1)
+ {
+  ai->st.state+=1;
+  stepID=0;
+  all_stop();
  }
-
-
+ else if (stepID>=1) stepID=0;
 
  return;
 }
@@ -348,309 +338,341 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
   // Carry out self id process.
   fprintf(stderr,"Initial state, self-id in progress...\n");
   id_bot(ai,blobs);
+  //initial my setup
+  flag = 0;
+  if ((ai->st.state%100)!=0)  // The id_bot() routine will change the AI state to initial state + 1
+  {       // if robot identification is successful.
+   if (ai->st.self->cx[0]>=512) ai->st.side=1; else ai->st.side=0;
+   all_stop();
+   clear_motion_flags(ai);
+   fprintf(stderr,"Self-ID complete. Current position: (%f,%f), current heading: [%f, %f], AI state=%d\n",ai->st.self->cx[0],ai->st.self->cy[0],ai->st.self->mx,ai->st.self->my,ai->st.state);
+  }
 
-  if(isLost(ai)){
-    ai->st.state = 100;
-    all_stop();
-  }else{
-    //initial my setup
-    flag = 0;
-    if ((ai->st.state%100)!=0)  // The id_bot() routine will change the AI state to initial state + 1
-    {       // if robot identification is successful.
-     if (ai->st.self->cx[0]>=512) ai->st.side=1; else ai->st.side=0;
-     all_stop();
-     clear_motion_flags(ai);
-     fprintf(stderr,"Self-ID complete. Current position: (%f,%f), current heading: [%f, %f], AI state=%d\n",ai->st.self->cx[0],ai->st.self->cy[0],ai->st.self->mx,ai->st.self->my,ai->st.state);
+}else if ((1 <= ai->st.state) && (99 > ai->st.state))
+ {
+
+  if (ai->st.state == 1){
+    // determine which side we are on
+    int s = side_checker(ai);
+
+    if (s){
+      fprintf(stderr, "left of camera \n");
+      ai->st.state = 2;
+    }else{
+      fprintf(stderr, "right of camera\n");
+      ai->st.state = 52;
+    }
+  } 
+
+  if (ai->st.state == 2){
+
+    if (150.0 < ai->st.self->cx[0]){
+      fprintf(stderr, "%f   #########\n", ai->st.self->cx[0]);
+      drive_speed(-50);
+    }else{
+      ai->st.state = 3;
+    }
+
+  }
+
+  if (ai->st.state == 3){
+    fprintf(stderr, "do the three way \n");
+    drive_speed(70);
+    usleep(1000000);
+    drive_speed(-70);
+    usleep(1000000);
+    pivot_left_speed(30);
+    usleep(500000);
+    drive_speed(70);
+    usleep(1000000);
+    drive_speed(-70);
+    usleep(1000000);
+    pivot_right_speed(30);
+    usleep(500000);
+    drive_speed(70);
+    usleep(1000000);
+    drive_speed(-70);
+    usleep(1000000);
+    pivot_right_speed(30);
+    usleep(500000);
+    drive_speed(70);
+    usleep(1000000);
+    drive_speed(-70);
+    usleep(1000000);
+    pivot_left_speed(30);
+    usleep(500000);
+
+    
+  }
+
+
+
+  if (ai->st.state == 52){
+
+    if( (ai->st.ball->cx[0]*2)-150 > ai->st.self->cx[0] ){
+      drive_speed(-50);
+    }else{
+      ai->st.state = 53;
     }
     
   }
 
-}
- else if ((1 <= ai->st.state) && (99 > ai->st.state))
-   {
-    //we are in soccer_play
-    if (ai->st.state == 1){
-      // determine which side we are on
-      int s = side_checker(ai);
-
-      if (s){
-        fprintf(stderr, "left of camera \n");
-        ai->st.state = 2;
-      }else{
-        fprintf(stderr, "right of camera\n");
-        ai->st.state = 52;
-      }
-    } 
-
-
-
-
-
-
-    if (ai->st.state == 2){
-      ai->st.state = 200;
-
-
-    }
-
-    if (ai->st.state == 3){
-      ai->st.state = 200;
-
-    }
+  if (ai->st.state == 53 ){
+    fprintf(stderr, "do the three way \n");
+    drive_speed(70);
+    usleep(1000000);
+    drive_speed(-70);
+    usleep(1000000);
+    pivot_left_speed(30);
+    usleep(500000);
+    drive_speed(70);
+    usleep(1000000);
+    drive_speed(-70);
+    usleep(1000000);
+    pivot_right_speed(30);
+    usleep(500000);
+    drive_speed(70);
+    usleep(1000000);
+    drive_speed(-70);
+    usleep(1000000);
+    pivot_right_speed(30);
+    usleep(500000);
+    drive_speed(70);
+    usleep(1000000);
+    drive_speed(-70);
+    usleep(1000000);
+    pivot_left_speed(30);
+    usleep(500000);
+  }
 
 
 
 
-   
-  }else if ((101 <= ai->st.state) && (199 > ai->st.state))
-     {            // if we choose penalty kick
 
-        if (isLost(ai)){
-          //we check if blobs are lost.
-          ai->st.state = 100;
 
-        }
-        else {
-            if (ai->st.state == 101){
-            // check which side we are on.
-              a = above_or_below(ai);
-              if (a == 1){
-                // above
-                ai->st.state = 152;
-              }else if(a == -1){
-                // below
+
+
+ }else if ((101 <= ai->st.state) && (199 > ai->st.state))
+ {            // if we choose penalty kick
+ 
+
+              if (ai->st.state == 101){
+              // check which side we are on.
+                a = above_or_below(ai);
+                if (a == 1){
+                  // above
+                  ai->st.state = 152;
+                }else if(a == -1){
+                  // below
+                  ai->st.state = 102;
+                }
+
+
+              }else if (ai->st.state == 102){
+                // bot is below the ball.
+                if (isPerpendicular(ai)){
+                  // bot is perpendicular to the field
+                  ai->st.state = 110;
+                }else{
+                  // bot is NOT perpendicular to the field
+                  ai->st.state = 103;
+                }
+
+              }else if (ai->st.state == 103){
+                // bot is below the ball, NOT perpendicular to the field
+                if (change==0){
+
+                makePerpendicular(ai,blobs,1);
+                change=1;
+                }else if (change == 1){
+                  change = 2;
+                  makePerpendicular(ai,blobs,1);
+                  
+                  if ((ai->st.self->my != 0.0) && (ai->st.self->mx != 0.0)){
+                    my = (ai->st.self->my) * -1.0;
+                    mx = (ai->st.self->mx) * -1.0;
+                  }
+                  ai->st.self->my = 0.0;
+                  ai->st.self->mx = 0.0;
+                  fprintf(stderr, "%f\n", my);
+                      if (my > 0.0){
+                      fprintf(stderr, "we got to turn 180* \n");
+                      pivot_right_speed(40);
+                      usleep(2100000);
+                    }
+
+                }else if (change == 2){
+                  makePerpendicular(ai,blobs,0);
+                  change=3;
+
+                }else if (change == 3){
+                  makePerpendicular(ai,blobs,-1);
+                  change = 4;
+                 
+                }
+                else if (change == 4){
+                  makePerpendicular(ai,blobs,-1);
+                  ai->st.self->my = 0.0;
+                  ai->st.self->mx = 0.0;
+                  change=0;
+                }
                 ai->st.state = 102;
               }
 
 
-            }else if (ai->st.state == 102){
-              // bot is below the ball.
-              if (isPerpendicular(ai)){
-                // bot is perpendicular to the field
-                ai->st.state = 110;
-              }else{
-                // bot is NOT perpendicular to the field
-                ai->st.state = 103;
+              else if (ai->st.state == 110){
+                center_y(ai,blobs,-1);
+               
+              }
+              else if (ai->st.state == 111){
+
+                if (fabs(ai->st.self->cx[0] - ai->st.ball->cx[0]) < 200 ){
+                    fprintf(stderr, "getting ready to kick \n");
+                    kick();
+                    usleep(1250000);
+                    ai->st.state = 198;
+                }else{
+                    
+                    drive_speed(30);
+
+
+
+                }
               }
 
-          }else if (ai->st.state == 103){
-            // bot is below the ball, NOT perpendicular to the field
-            // making the bot perpendicular to the line
-            if (change==0){
 
 
-            makePerpendicular(ai,blobs,1);
-            change=1;
-            }else if (change == 1){
-              change = 2;
-              makePerpendicular(ai,blobs,1);
-              if (isLost(ai)){
-                  ai->st.state = 100;
-              }
-              if ((ai->st.self->my != 0.0) && (ai->st.self->mx != 0.0)){
-                my = (ai->st.self->my) * -1.0;
-                mx = (ai->st.self->mx) * -1.0;
-              }
-              ai->st.self->my = 0.0;
-              ai->st.self->mx = 0.0;
-              fprintf(stderr, "%f\n", my);
-                  if (my > 0.0){
-                  fprintf(stderr, "we got to turn 180* \n");
-                  pivot_right_speed(80);
-                  usleep(700000);
+
+              else if (ai->st.state == 152){
+                // bot is below the ball.
+                if (isPerpendicular(ai)){
+                  // bot is perpendicular to the field
+                  ai->st.state = 160;
+                }else{
+                  // bot is NOT perpendicular to the field
+                  ai->st.state = 153;
                 }
 
-            }else if (change == 2){
-              makePerpendicular(ai,blobs,0);
-              change=3;
+              }else if (ai->st.state ==153){
 
-            }else if (change == 3){
-              makePerpendicular(ai,blobs,-1);
-              change = 4;
-             
-            }
-            else if (change == 4){
-              makePerpendicular(ai,blobs,-1);
-              ai->st.self->my = 0.0;
-              ai->st.self->mx = 0.0;
-              change=0;
-            }
-            ai->st.state = 102;
 
-          } else if (ai->st.state == 110){
-            //now we approach to the ball and turn.
-            center_y(ai,blobs,-1);
-         
-        } else if (ai->st.state == 111){
-          //now we are looking at the ball
-          //all we have to do is just drive forward and kick the ball.
 
-          if (fabs(ai->st.self->cx[0] - ai->st.ball->cx[0]) < 200 ){
-              //we are in the kicking distance.
-              fprintf(stderr, "do the three way \n");
-              //checking y axis distance from ball to robot
-              int z = ai->st.ball->cy[0] - ai->st.self->cy[0];
-              if (side_checker(ai) == 1){
-                //now we kick the ball
-                three_way(z);
-              }
-              else{
-                three_way(-z);
-              }
 
-              ai->st.state = 198;
-          }else{
-            //we are not close enough to the ball. Drive.
-              drive_speed(50);
-            }       
-        }
 
-        else if (ai->st.state == 152){
-          // bot is below the ball.
-          if (isPerpendicular(ai)){
-            // bot is perpendicular to the field
-            ai->st.state = 160;
-          }else{
-            // bot is NOT perpendicular to the field
-            ai->st.state = 153;
-          }
-        }else if (ai->st.state ==153){
 
-       // bot is below the ball, NOT perpendicular to the field
-          if (change==0){
+             // bot is below the ball, NOT perpendicular to the field
+                if (change==0){
 
-          makePerpendicular(ai,blobs,1);
-          change=1;
+                makePerpendicular(ai,blobs,1);
+                change=1;
 
-          }else if (change == 1){
-            change = 2;
-            makePerpendicular(ai,blobs,1);
+                }else if (change == 1){
+                  change = 2;
+                  makePerpendicular(ai,blobs,1);
 
-            if ((ai->st.self->my != 0.0) && (ai->st.self->mx != 0.0)){
+                  if ((ai->st.self->my != 0.0) && (ai->st.self->mx != 0.0)){
 
-              my = (ai->st.self->my) * -1.0;
-              mx = (ai->st.self->mx) * -1.0;
-            }
+                    my = (ai->st.self->my) * -1.0;
+                    mx = (ai->st.self->mx) * -1.0;
+                  }
 
-            ai->st.self->my = 0.0;
-            ai->st.self->mx = 0.0;
-            fprintf(stderr, "%f\n", my);
-                if (my < 0.0){
-                fprintf(stderr, "turn 180* \n");
-                pivot_right_speed(80);
-                usleep(700000);
+                  ai->st.self->my = 0.0;
+                  ai->st.self->mx = 0.0;
+                  fprintf(stderr, "%f\n", my);
+                      if (my < 0.0){
+                      fprintf(stderr, "turn 180* \n");
+                      pivot_right_speed(40);
+                      usleep(2100000);
+                      }
+
+                }else if (change == 2){
+                  makePerpendicular(ai,blobs,0);
+                  change=3;
+
+                }else if (change == 3){
+                  makePerpendicular(ai,blobs,-1);
+                  change = 4;
+                 
+                }
+                else if (change == 4){
+                  makePerpendicular(ai,blobs,-1);
+                  ai->st.self->my = 0.0;
+                  ai->st.self->mx = 0.0;
+                  change=0;
+                }
+                ai->st.state = 152;
+
+              }else if (ai->st.state == 160){
+                center_y(ai,blobs,1);
+               
+
+              }else if (ai->st.state ==161){
+
+                if (fabs(ai->st.self->cx[0] - ai->st.ball->cx[0]) < 200 ){
+                    kick();
+                    usleep(1250000);
+                    ai->st.state = 198;
+                }else {
+                    drive_speed(30);
                 }
 
-          }else if (change == 2){
-            makePerpendicular(ai,blobs,0);
-            change=3;
 
-          }else if (change == 3){
-            makePerpendicular(ai,blobs,-1);
-            change = 4;   // bot is below the ball, NOT perpendicular to the field
-          if (change==0){
 
-           
-          }
-          else if (change == 4){
-            makePerpendicular(ai,blobs,-1);
-            ai->st.self->my = 0.0;
-            ai->st.self->mx = 0.0;
-            change=0;
-          }
-          ai->st.state = 152;
+              }else if (ai->st.state == 198){                 
+                fprintf(stderr, "Let me rest\n");
+                all_stop();
+                if (where == 2){
+                  // re init stuff
+                      int c = 0;
+                      double h = 0.0;
+                      double total = 0.0;
+                      int side = 0;
+                      int a = 0;
+                      int change = 0;
+                      double mx, my = 0.0;
+                  //
+                      ai->st.ball->vy[0] = 320;
+                      ai->st.ball->vy[1] = 320;
+                      ai->st.ball->vy[2] = 320;
+                      ai->st.ball->vy[3] = 320;
+                      ai->st.ball->vx[0] = 320;
+                      ai->st.ball->vx[1] = 320;
+                      ai->st.ball->vx[2] = 320;
+                      ai->st.ball->vx[3] = 320;
+                  // 
 
-        }else if (ai->st.state == 160){
-          //we approach to the ball and turn towards the ball.
-          center_y(ai,blobs,1);
-         
-
-        }else if (ai->st.state ==161){
-          //now we are facing the ball.
-
-          if (fabs(ai->st.self->cx[0] - ai->st.ball->cx[0]) < 200 ){
-            //we are close enough to kick the ball.
-              fprintf(stderr, "do the three way \n");
-              int z = ai->st.ball->cy[0] - ai->st.self->cy[0];
-              if (side_checker(ai) == 1){
-                three_way(z);
-                
+                  fprintf(stderr, "Going to track ball again, give me some time\n");
+                  sleep(10);
+                  fprintf(stderr, "I rested enuf, back to work\n");
+                  ai->st.state = 200;
+                } 
               }
-              else{
-                three_way(-z);
-                
-              }
-              ai->st.state = 198;
-          }else {
-            //we are not close enough, drive forward.
-            drive_speed(50);
-
-
-          }
-        }
-
-
-        }else if (ai->st.state == 198){     
-          //we performed one penalty kick, resting.            
-          fprintf(stderr, "Let me rest\n");
-          all_stop();
-          if (where == 2){
-            // re initializing necessary variables.
-                int c = 0;
-                double h = 0.0;
-                double total = 0.0;
-                int side = 0;
-                int a = 0;
-                int change = 0;
-                double mx, my = 0.0;
-            //
-                ai->st.ball->vy[0] = 320;
-                ai->st.ball->vy[1] = 320;
-                ai->st.ball->vy[2] = 320;
-                ai->st.ball->vy[3] = 320;
-                ai->st.ball->vx[0] = 320;
-                ai->st.ball->vx[1] = 320;
-                ai->st.ball->vx[2] = 320;
-                ai->st.ball->vx[3] = 320;
-            // 
-
-            fprintf(stderr, "Going to track ball again, give me some time\n");
-            sleep(3);
-            fprintf(stderr, "I rested enuf, back to work\n");
-            ai->st.state = 200;
-          } 
-        }
-      
-    }
-
-
   }else if ((201 <= ai->st.state) && (299 > ai->st.state)){
-    //we are chasing the ball.
-////////////////////////////////////////////////////////////////
-    if (isLost(ai)){
-      ai->st.state = 200;
+    where = 2;
+
+    fprintf(stderr, "vx0 %f\n", ai->st.ball->vx[0]);
+    fprintf(stderr, "vx1 %f\n", ai->st.ball->vx[1]);
+    fprintf(stderr, "vx2 %f\n", ai->st.ball->vx[2]);
+    fprintf(stderr, "vx3 %f\n", ai->st.ball->vx[3]);
+    
+
+    fprintf(stderr, "vy0 %f\n", ai->st.ball->vy[0]);
+    fprintf(stderr, "vy1 %f\n", ai->st.ball->vy[1]);
+    fprintf(stderr, "vy2 %f\n", ai->st.ball->vy[2]);
+    fprintf(stderr, "vy3 %f\n", ai->st.ball->vy[3]);
+
+
+    if(   (ai->st.ball->vx[0] > -1.7 && ai->st.ball->vx[0] < 1.7) &&
+          (ai->st.ball->vy[0] > -1.7 && ai->st.ball->vy[0] < 1.7) &&
+          (ai->st.ball->vx[1] > -1.7 && ai->st.ball->vx[1] < 1.7) &&
+          (ai->st.ball->vy[1] > -1.7 && ai->st.ball->vy[1] < 1.7) &&
+          (ai->st.ball->vx[2] > -1.7 && ai->st.ball->vx[2] < 1.7) &&
+          (ai->st.ball->vy[2] > -1.7 && ai->st.ball->vy[2] < 1.7) &&
+          (ai->st.ball->vx[3] > -1.7 && ai->st.ball->vx[3] < 1.7) &&
+          (ai->st.ball->vy[3] > -1.7 && ai->st.ball->vy[3] < 1.7) )
+    {
+          ai->st.state = 100;
     }
-////////////////////////////////////////////////////////////////
-    else {
-      
-      where = 2;
-      //check the ball's recent change in velocity.
-      if(   (ai->st.ball->vx[0] > -1.7 && ai->st.ball->vx[0] < 1.7) &&
-            (ai->st.ball->vy[0] > -1.7 && ai->st.ball->vy[0] < 1.7) &&
-            (ai->st.ball->vx[1] > -1.7 && ai->st.ball->vx[1] < 1.7) &&
-            (ai->st.ball->vy[1] > -1.7 && ai->st.ball->vy[1] < 1.7) &&
-            (ai->st.ball->vx[2] > -1.7 && ai->st.ball->vx[2] < 1.7) &&
-            (ai->st.ball->vy[2] > -1.7 && ai->st.ball->vy[2] < 1.7) &&
-            (ai->st.ball->vx[3] > -1.7 && ai->st.ball->vx[3] < 1.7) &&
-            (ai->st.ball->vy[3] > -1.7 && ai->st.ball->vy[3] < 1.7) )
-      {
-            ai->st.state = 101;
-      }
-    }
-
-
-
-
 
 
 
@@ -675,7 +697,7 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
 
 
 
-/*************angle_in*********************************************************************
+/**********************************************************************************
  TO DO:
 
  Add the rest of your game playing logic below. Create appropriate functions to
@@ -691,10 +713,10 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
 
 
 int above_or_below(struct RoboAI *ai){
-    if (h < 3.0){
+    if (h < 10.0){
       h += 1.0;
       total += (ai->st.ball->cy[0] - ai->st.self->cy[0]);
-      if (h == 3.0){
+      if (h == 10.0){
         if ((total) > 0.0){
           fprintf(stderr, "bot is above \n");
           return 1;
@@ -714,7 +736,7 @@ int isPerpendicular(struct RoboAI *ai)
 {
 
       if (a == -1){
-        if (my < -0.970 && my > -0.999)
+        if (my < -0.960 && my > -0.999)
         {
           fprintf(stderr, "perpendicular!!!!\n");
           return 1;
@@ -722,7 +744,7 @@ int isPerpendicular(struct RoboAI *ai)
           return 0;
         }
       }else if (a == 1){
-        if (my > 0.970 && my < 0.999)
+        if (my > 0.960 && my < 0.999)
         {
           fprintf(stderr, "perpendicular!!!!\n");
           return 1;
@@ -731,6 +753,37 @@ int isPerpendicular(struct RoboAI *ai)
         }
       }
 
+}
+
+void final_check(int count, double left_right){
+  fprintf(stderr, "in final_check ########\n");
+  fprintf(stderr, "count is  %d\n", count);
+
+  if (count < 5){
+    fprintf(stderr, "DDDDDDDD\n");
+    drive_speed(30);
+    usleep(100000);
+  }
+
+
+  else if ((count == 5) && (left_right)) {
+    fprintf(stderr, "TTTTT_LLLLLLLLLLLLLLL\n");
+    pivot_left_speed(15);
+    usleep(100000);
+
+  }
+  
+  else if ((count == 5) && !(left_right)) {
+    printf(stderr, "TTTTT_RRRRRRRRRRRRRRRR\n");
+    pivot_right_speed(15);
+    usleep(100000);
+  }
+
+  else if (count > 5){
+    printf(stderr, "R R R R R R R R R R\n");
+    drive_speed(-30);
+    usleep(100000);
+  }
 }
 
 
@@ -742,24 +795,24 @@ void makePerpendicular(struct RoboAI *ai, struct blob *blobs, int flag){
  if ((flag == 0)  && (mx > 0.0)){
         if (a == 1){
           // above case
-         pivot_right_speed(35);
+         pivot_right_speed(15);
         }else{
-         pivot_left_speed(35);  // Need a few frames to establish heading
+         pivot_left_speed(15);  // Need a few frames to establish heading
         }
  }else if ((flag == 0)  && (mx < 0.0)){
   
         if (a == 1){
           // above case
-          pivot_left_speed(35);
+          pivot_left_speed(15);
         }else{
 
-          pivot_right_speed(35);
+          pivot_right_speed(15);
         }
 
  }else if (flag == 1){
-  drive_speed(65);
+  drive_speed(50);
  }else if (flag == -1){
-  drive_speed(-65);
+  drive_speed(-50);
  }
  track_agents(ai,blobs);
 
@@ -773,71 +826,109 @@ void makePerpendicular(struct RoboAI *ai, struct blob *blobs, int flag){
  return;
 }
 
+double angle_between(struct RoboAI *ai){
+  //heading vectors(x,y) of robot while approaching the ball to kick.
+  double rx, ry = 0.0;
+  // vectors heading from robot's center to the ball
+
+  double angle = 0.0;
+
+
+  //updating rx,ry with current vectors of the bot.
+  rx = ai->st.self->cx[0] - before_turn_x;
+  ry = ai->st.self->cy[0] - before_turn_y;
+
+
+
+  //magnitude of each vectors
+  double mag_rxy = sqrt(pow(rx,2.0) + pow(ry,2.0));
+  double mag_rbxy = sqrt(pow(perfect_line_x,2.0) + pow(perfect_line_y,2.0));
+
+  angle = acos(((rx * perfect_line_x) + (ry * perfect_line_y)) / (mag_rxy * mag_rbxy));
+
+  return angle * rad_to_degree;
+
+}
+
+
+
+
+int perfect_kick(struct RoboAI *ai){
+  //heading vectors(x,y) of robot while approaching the ball to kick.
+ double rx, ry = 0.0;
+ // vectors heading from robot's center to the ball
+ double rbx, rby = 0.0;
+ double angle = 0.0;
+
+
+ //updating rx,ry with current vectors of the bot.
+ rx = ai->st.self->mx;
+ ry = ai->st.self->my;
+
+ rbx = (ai->st.ball->cx[0] - ai->st.self->cx[0]);
+ rby = (ai->st.ball->cy[0] - ai->st.self->cy[0]); 
+
+ if (((rbx * ry) - (rby * rx)) > 0.0) { 
+   return 1; //turn right
+   
+ }
+ return 0; //turn left
+}
+
 void center_y(struct RoboAI *ai, struct blob *blobs, int a){
   mx = 0.0;
   my = 0.0;
-  
   if (a == 1){
 
-          if (fabs(ai->st.ball->cy[0] - ai->st.self->cy[0]) < 50 ){
-            drive_speed(20);
+          if (fabs(ai->st.ball->cy[0] - ai->st.self->cy[0]) < 20 ){
+            all_stop();
+            c++;
+            if (c > 1){
+              if ((ai->st.ball->cx[0] - ai->st.self->cx[0]) > 0){
+                fprintf(stderr, "############# turn left #################\n");
+                before_turn_x = ai->st.self->cx[0];
+                before_turn_y = ai->st.self->cy[0];
+                ai->st.self->mx = 0;
+                ai->st.self->my = 0;
 
-            if (fabs(ai->st.ball->cy[0] - ai->st.self->cy[0]) < 10 ){
-              all_stop();
-              c++;
-              if (c > 1){
-                if ((ai->st.ball->cx[0] - ai->st.self->cx[0]) > 0){
-                  fprintf(stderr, "############# turn left #################\n");
-                  before_turn_x = ai->st.self->cx[0];
-                  before_turn_y = ai->st.self->cy[0];
-                  ai->st.self->mx = 0;
-                  ai->st.self->my = 0;
+                perfect_line_x = ai->st.ball->cx[0] - ai->st.self->cx[0];
+                perfect_line_y = ai->st.ball->cy[0] - ai->st.self->cy[0];
+                pivot_left_speed(40);
+                usleep(1250000);
 
-                  perfect_line_x = ai->st.ball->cx[0] - ai->st.self->cx[0];
-                  perfect_line_y = ai->st.ball->cy[0] - ai->st.self->cy[0];
-                  pivot_left_speed(40);
-                  usleep(1250000);
+                all_stop();
 
-                  all_stop();
-
-                
-                
-
-                  ai->st.state = 161;
-                  mx = 0.0;
-                  my = 0.0;}
-                  else{
-                fprintf(stderr, "############# turn right #################\n");
-                  before_turn_x = ai->st.self->cx[0];
-                  before_turn_y = ai->st.self->cy[0];
-                  ai->st.self->mx = 0;
-                  ai->st.self->my = 0;
-
-                  perfect_line_x = ai->st.ball->cx[0] - ai->st.self->cx[0];
-                  perfect_line_y = ai->st.ball->cy[0] - ai->st.self->cy[0];
-                  pivot_right_speed(40);
-                  usleep(1250000);
-                  all_stop();
-                          
-                
-
-                  ai->st.state = 161;
-                  mx = 0.0;
-                  my = 0.0;
-
-                  }
-              }
               
+              
+
+                ai->st.state = 161;
+                mx = 0.0;
+                my = 0.0;}
+                else{
+              fprintf(stderr, "############# turn right #################\n");
+                before_turn_x = ai->st.self->cx[0];
+                before_turn_y = ai->st.self->cy[0];
+                ai->st.self->mx = 0;
+                ai->st.self->my = 0;
+
+                perfect_line_x = ai->st.ball->cx[0] - ai->st.self->cx[0];
+                perfect_line_y = ai->st.ball->cy[0] - ai->st.self->cy[0];
+                pivot_right_speed(40);
+                usleep(1150000);
+                all_stop();
+                        
+              
+
+                ai->st.state = 161;
+                mx = 0.0;
+                my = 0.0;
+
+                }
             }
-      }else if (fabs(ai->st.ball->cy[0] - ai->st.self->cy[0]) >50){
-        if (isLost(ai)){
-            ai->st.state = 100;
-        }
-
+      }else if (fabs(ai->st.ball->cy[0] - ai->st.self->cy[0]) >20){
         
-        drive_speed(50);
+        drive_speed(30);
         c = 0;
-
       }
     }
 
@@ -845,10 +936,7 @@ void center_y(struct RoboAI *ai, struct blob *blobs, int a){
       
 
 
-          if (fabs(ai->st.ball->cy[0] - ai->st.self->cy[0]) < 50 ){
-            drive_speed(20);
-            if (fabs(ai->st.ball->cy[0] - ai->st.self->cy[0]) < 10 ){
-
+          if (fabs(ai->st.ball->cy[0] - ai->st.self->cy[0]) < 20 ){
             all_stop();
             c++;
             fprintf(stderr, "##### %f ######## %d ######\n",(ai->st.ball->cy[0] - ai->st.self->cy[0]),c);
@@ -880,7 +968,7 @@ void center_y(struct RoboAI *ai, struct blob *blobs, int a){
                 perfect_line_x = ai->st.ball->cx[0] - ai->st.self->cx[0];
                 perfect_line_y = ai->st.ball->cy[0] - ai->st.self->cy[0];
                 pivot_right_speed(40);
-                usleep(1250000);
+                usleep(1150000);
                 
                 all_stop();
                 ai->st.state = 111;
@@ -888,93 +976,16 @@ void center_y(struct RoboAI *ai, struct blob *blobs, int a){
                 my = 0.0;
 
                 }
-              }
             }
-
-          }else if (fabs(ai->st.ball->cy[0] - ai->st.self->cy[0]) >50){
-            if (isLost(ai)){
-                ai->st.state = 100;
-            }
-                      
-            drive_speed(50);
+          }else if (fabs(ai->st.ball->cy[0] - ai->st.self->cy[0]) >20){
+            
+            drive_speed(30);
             c = 0;
           }
   }else{
     fprintf(stderr, "Something is wrong\n");
   }
 }
-
-void three_way(int z){
-
-              if (z < 0){
-                // positive
-                //bx - rx = pos
-
-                        //kick and come back
-                        drive_speed(100);
-                        usleep(2000000);
-                        drive_speed(-100);
-                        usleep(2000000);
-
-                        //turn
-                        pivot_left_speed(25);
-                        usleep(500000);
-                       
-                       //kick
-                        drive_speed(100);
-                        usleep(2000000);
-                        drive_speed(-100);
-                        usleep(2000000);
-
-                        pivot_left_speed(25);
-                        usleep(500000);
-  
-                        drive_speed(100);
-                        usleep(2000000);
-                        drive_speed(-100);
-                        usleep(2000000);
-
-                        pivot_left_speed(25);
-                        usleep(500000);
-
-                        drive_speed(100);
-                        usleep(2000000);
-                        drive_speed(-100);
-                        usleep(2000000);
-
-                }else{
-                  // negative
-                        drive_speed(100);
-                        usleep(2000000);
-                        drive_speed(-100);
-                        usleep(2000000);
-
-                        pivot_right_speed(25);
-                        usleep(500000);
-                       
-                        drive_speed(100);
-                        usleep(2000000);
-                        drive_speed(-100);
-                        usleep(2000000);
-
-                        pivot_right_speed(25);
-                        usleep(500000);
-  
-                        drive_speed(100);
-                        usleep(2000000);
-                        drive_speed(-100);
-                        usleep(2000000);
-
-                        pivot_right_speed(25);
-                        usleep(500000);
-                        
-                        drive_speed(100);
-                        usleep(2000000);
-                        drive_speed(-100);
-                        usleep(2000000);
-                      }
-}
-
 
 
 int side_checker(struct RoboAI *ai){
@@ -987,12 +998,4 @@ int side_checker(struct RoboAI *ai){
     return 0 ;
   }
 }
-
-int isLost(struct RoboAI *ai){
-  //helper fn for checking 
-  if ((ai->st.ball == NULL) || (ai->st.self == NULL)){
-    fprintf(stderr, "BLOB LOST\n");
-    return 1;
-  }
-  return 0;
-}
+//h

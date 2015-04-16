@@ -85,7 +85,7 @@ int kick(){
 	return kick_speed(MAX_SPEED);
 }
 int kick_speed(int speed){
-	return NXT_OnFwd(OUT_A, speed * DIRECTION_KICKER);
+	return NXT_OnFwd(OUT_BC, speed * DIRECTION_KICKER);
 }
 int stop_kicker(){
 	return kick_speed(0);
